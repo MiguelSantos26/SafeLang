@@ -1,0 +1,234 @@
+group SafeLangToJava;
+
+// ── Programa ──────────────────────────────────────────────────────
+
+program(className, stats, needsScanner) ::= <<
+import java.math.BigInteger;
+
+public class <className> {
+
+    static Fraction _toFrac(BigInteger v) { return new Fraction(v, BigInteger.ONE); }
+    static Fraction _toFrac(Fraction v)   { return v; }
+
+    static String _str(BigInteger v) { return v.toString(); }
+    static String _str(Fraction v)   { return v.toString(); }
+    static String _str(String v)     { return v; }
+    static String _str(boolean v)    { return Boolean.toString(v); }
+
+    static BigInteger _checkBits(BigInteger v, int bits) {
+        BigInteger min = BigInteger.ONE.shiftLeft(bits - 1).negate();
+        BigInteger max = BigInteger.ONE.shiftLeft(bits - 1).subtract(BigInteger.ONE);
+        if (v.compareTo(min) \< 0 || v.compareTo(max) > 0)
+            throw new ArithmeticException("overflow: " + v + " does not fit in " + bits + " bits");
+        return v;
+    }
+    static BigInteger _truncBits(BigInteger v, int bits) {
+        BigInteger mod  = BigInteger.ONE.shiftLeft(bits);
+        BigInteger half = BigInteger.ONE.shiftLeft(bits - 1);
+        BigInteger r    = v.mod(mod);
+        return r.compareTo(half) >= 0 ? r.subtract(mod) : r;
+    }
+
+<if(needsScanner)>
+    static String _readLine(java.util.Scanner in, String prompt) {
+        System.out.print(prompt);
+        return in.hasNextLine() ? in.nextLine() : "";
+    }
+
+<endif>
+    public static void main(String[] args) {
+<if(needsScanner)>
+        java.util.Scanner _in = new java.util.Scanner(System.in);
+<endif>
+        <stats; separator="\n">
+    }
+}
+>>
+
+// ── Statements ────────────────────────────────────────────────────
+
+// x: integer  /  x: real  /  x: NMEC   (só declaração, valor por defeito)
+varDecl(javaType, id, defaultVal) ::= "<javaType> v_<id> = <defaultVal>;"
+
+// x := expr   (variável já declarada)
+varAssign(id, expr) ::= "v_<id> = <expr>;"
+
+// x := expr (primeira vez, sem :=?)
+varDeclAssign(javaType, id, expr) ::= "<javaType> v_<id> = <expr>;"
+
+// x :=? expr   (aborta programa com mensagem de erro se falhar)
+varAssignTry(id, expr, line) ::= <<
+try {
+    v_<id> = <expr>;
+} catch (Exception _e) {
+    System.err.println("[line <line>] ERROR: " + _e.getMessage());
+    System.exit(1);
+}
+>>
+
+// Primeira declaração + :=?
+varDeclAssignTry(javaType, id, expr, line, defaultVal) ::= <<
+<javaType> v_<id> = <defaultVal>;
+try {
+    v_<id> = <expr>;
+} catch (Exception _e) {
+    System.err.println("[line <line>] ERROR: " + _e.getMessage());
+    System.exit(1);
+}
+>>
+
+// write e1, e2, e3
+writeExpr(parts) ::= "System.out.print(<parts; separator=\" + \">);"
+
+// writeln e1, e2, e3
+writelnExpr(parts) ::= "System.out.println(<parts; separator=\" + \">);"
+
+// writeln   (sem argumentos)
+writelnEmpty() ::= "System.out.println();"
+
+// ── Declarações de tipos e unidades ──────────────────────────────
+
+// type Length [meter, m]: real   →   comentário + constante da unidade base
+typeDeclBase(name, javaType, unit, suffix) ::= <<
+// type <name> [<unit>, <suffix>]: <javaType>
+final Fraction v_<unit> = Fraction.ONE;
+>>
+
+// type NMEC [nmec]: integer   (sem sufixo de display)
+typeDeclBaseNoSuffix(name, javaType, unit) ::= <<
+// type <name> [<unit>]: <javaType>
+final Fraction v_<unit> = Fraction.ONE;
+>>
+
+// type Velocity := Length/Time: real   →   só comentário (dimensão derivada)
+typeDeclDerived(name, javaType, dimExpr) ::= "// type <name> := <dimExpr>: <javaType>"
+
+// unit Length [inch, in] := 0.0254 * meter
+unitDecl(unitName, expr) ::= "final Fraction v_<unitName> = <expr>;"
+
+// ── Expressões — aritmética com método (BigInteger e Fraction) ────
+
+// + e -   (BigInteger.add / Fraction.add — mesmo nome para ambos)
+exprAdd(left, right) ::= "(<left>).add(<right>)"
+exprSub(left, right) ::= "(<left>).subtract(<right>)"
+
+// *  inteiro × inteiro
+exprMulInt(left, right)  ::= "(<left>).multiply(<right>)"
+
+// *  quando pelo menos um operando é Fraction (usa _toFrac para converter se necessário)
+exprMulFrac(left, right) ::= "(<left>).mul(<right>)"
+
+// /  SafeLang '/' é sempre divisão real → Fraction
+exprDiv(left, right) ::= "_toFrac(<left>).div(_toFrac(<right>))"
+
+// //  divisão inteira   \\  resto inteiro
+exprIntDiv(left, right) ::= "(<left>).divide(<right>)"
+exprIntMod(left, right) ::= "(<left>).remainder(<right>)"
+
+// Concatenação de strings (quando + tem pelo menos um string)
+exprConcat(left, right) ::= "_str(<left>) + _str(<right>)"
+
+// ── Casts ─────────────────────────────────────────────────────────
+
+// integer(stringExpr)
+castStrToInt(expr)    ::= "new BigInteger((<expr>).trim())"
+
+// integer(fractionExpr)  — trunca para a parte inteira
+castFracToInt(expr)   ::= "(<expr>).toBigInteger()"
+
+// real(stringExpr)
+castStrToReal(expr)   ::= "Fraction.fromDecimal((<expr>).trim())"
+
+// real(bigIntegerExpr)
+castBigIntToReal(expr) ::= "_toFrac(<expr>)"
+
+// ── Expressões — outros ───────────────────────────────────────────
+
+// read "prompt"
+exprRead(prompt) ::= "_readLine(_in, <prompt>)"
+
+// format(expr, width)   — width é BigInteger, String.format precisa de int
+exprFormat(expr, width) ::= "String.format(\"%\" + (<width>).intValue() + \"s\", _str(<expr>))"
+
+exprParen(expr) ::= "(<expr>)"
+
+// ── Literais ─────────────────────────────────────────────────────
+
+litInt(val)       ::= "new BigInteger(\"<val>\")"
+litReal(val)      ::= "Fraction.fromDecimal(\"<val>\")"
+litRealFrac(n, d) ::= "new Fraction(new BigInteger(\"<n>\"), new BigInteger(\"<d>\"))"
+
+// ── Tratamento de erros ───────────────────────────────────────────
+
+// try statList end  (sem rescue — qualquer falha aborta o programa)
+tryStat(stats) ::= <<
+try {
+    <stats; separator="\n">
+} catch (Exception _e) {
+    System.err.println("[ERROR] " + _e.getMessage());
+    System.exit(1);
+}>>
+
+// try statList rescue statList end  (retry gera "continue")
+tryRescueStat(tryStats, rescueStats) ::= <<
+while (true) {
+    try {
+        <tryStats; separator="\n">
+        break;
+    } catch (Exception _e) {
+        <rescueStats; separator="\n">
+    }
+}>>
+
+// ── Controlo de fluxo ────────────────────────────────────────────
+
+// if expr then statList end
+ifStat(cond, thenStats) ::= <<
+if (<cond>) {
+    <thenStats; separator="\n">
+}>>
+
+// if expr then statList else statList end
+ifElseStat(cond, thenStats, elseStats) ::= <<
+if (<cond>) {
+    <thenStats; separator="\n">
+} else {
+    <elseStats; separator="\n">
+}>>
+
+// ── Ciclos ───────────────────────────────────────────────────────
+
+whileStat(cond, stats) ::= <<
+while (<cond>) {
+    <stats; separator="\n">
+}>>
+
+// until expr do statList end  (loop enquanto a condição for FALSA)
+untilStat(cond, stats) ::= <<
+while (!(<cond>)) {
+    <stats; separator="\n">
+}>>
+
+// ── Referências ──────────────────────────────────────────────────
+
+exprId(name) ::= "v_<name>"
+
+// ── Listas ────────────────────────────────────────────────────────
+
+// Adiciona um valor no fim da lista (expr >> list)
+statAppend(list, val) ::= "<list>.add(<val>);"
+
+// Criação de nova lista (new list[type])
+exprNewList() ::= "new java.util.ArrayList\<\>()"
+
+// Comprimento da lista (length(list))
+exprLength(list) ::= "new BigInteger(String.valueOf(<list>.size()))"
+
+// Acesso ao elemento da lista, o SafeLang usa base-1, pelo que se subtrai 1
+exprListAccess(list, index) ::= "<list>.get((<index>).intValue() - 1)"
+
+// ── Opcional: Iteração (para compilar totalmente o des-02.sl) ─────
+forStat(id, start, end, stats) ::= <<
+for (v_<id> = <start>; v_<id>.compareTo(<end>) \<= 0; v_<id> = v_<id>.add(BigInteger.ONE)) {
+    <stats; separator="\n">
+}>>

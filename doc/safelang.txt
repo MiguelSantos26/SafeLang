@@ -1,0 +1,109 @@
+Compiladores
+
+Linguagem SafeLang
+Departamento de Electrónica, Telecomunicações e Informática
+Universidade de Aveiro
+Abril de 2026
+
+Objectivos
+O objectivo geral deste trabalho é o desenvolvimento de uma linguagem de programação
+compilada – i.e. que crie programas equivalentes ao programa a compilar numa linguagem
+de programação genérica (Java, C++, Python, ...) – que seja o mais segura possı́vel
+em tempo de compilação (estático). Nesse sentido, esta linguagem tem por omissão uma
+representação ilimitada para os tipos de dados inteiros (i.e. com uma precisão infinita), e
+o tipo de dados real é sempre representado por uma fracção de dois inteiros.
+Para além dessa aproximação para estes dois tipos de de dados numéricos, esta linguagem
+implementa análise dimensional1 nos tipos e expressões numéricas (inteiros e reais).
+A inspiração para este aspecto da linguagem deriva – naturalmente – da fı́sica onde a
+análise dimensional serve para garantir sanidade nas expressões matemáticas aplicáveis
+(por forma a não permitir, por exemplo, que se some uma distância a uma velocidade).
+No entanto, a análise dimensional pode (e deve) ser aplicada a muitas outras áreas que
+utilizem quantidades numéricas para representar coisas diferentes (por exemplo, números
+mecanográficos e notas como acontece no primeiro exemplo dado).
+Assim, pretende-se estender o sistema de tipos de uma linguagem de programação (tanto
+quanto baste, de uso geral) com a possibilidade de definir dimensões distintas (e interoperáveis) a expressões numéricas (e como tal, a variáveis e outras entidades com tipos da
+linguagem). Por exemplo, poder definir tipos de dados distância e tempo (expressáveis,
+por exemplo, com unidades metro [m] e segundo [s]) e poder definir um novo tipo de dados
+velocidade como sendo distância/tempo [m/s]. O sistema de tipos da linguagem não só
+deve permitir álgebra sobre dimensões existentes, com validar (estaticamente!) a respectiva
+correcção (atribuir e/ou somar distância com tempo não deve ser permitido, muito embora
+ambos sejam números).
+É necessário aplicar uma álgebra dimensional (neste projecto, aplicável apenas a números
+inteiros e reais) com as seguintes regras:
+• comparações, atribuições de valor, somas e subtracções apenas para a mesma dimensão;
+1
+
+https://en.wikipedia.org/wiki/Dimensional_analysis
+
+1
+
+• multiplicações e divisões aplicáveis a expressões dimensionais a gerar outra dimensão;
+• multiplicações e divisões por expressões adimensionais a manter a mesma dimensão;
+Neste trabalho a parte da análise semântica (estática, isto é em tempo de compilação) é
+particularmente importante e desafiante. Será nesta fase se fará uma verificação dimensional completa.
+
+Caracterı́sticas da solução
+Apresentam-se a seguir um conjunto de caracterı́sticas que a solução desenvolvida pode ou
+deve contemplar. Essas caracterı́sticas estão classificadas a 3 nı́veis:
+• mı́nima – caracterı́stica que a solução tem obrigatoriamente que implementar;
+• desejável – caracterı́stica não obrigatória, mas fortemente desejável que seja implementada pela solução (apenas considerada se as mı́nimas forem cumpridas);
+• avançada – caracterı́stica adicional apenas considerada para avaliação se as obrigatórias
+e as desejáveis tiverem sido contempladas na solução.
+
+Caracterı́sticas mı́nimas
+Os exemplos min-*.sl, physics.sl e grades.sl indicam algum código fonte que
+tem de ser aceite (e devidamente compilado) pela linguagem a desenvolver.
+A linguagem deve implementar:
+• Os tipo de de dados inteiro, real e texto (ver exemplo).
+• Aceitar expressões aritméticas standard para os tipos de dados numéricos. Aceita a
+operação de concatenação de texto (operador da soma).
+• Instrução de escrita no standard output.
+• Instrução de leitura de texto a partir do standard input.
+• Operadores de conversão entre tipos de dados (por exemplo, string(10) para converter para texto; ou integer("10") para converter para inteiro).
+• Operador de formatação de strings (número minimo de colunas e, eventualmente, justificação).
+2
+
+• Instrução para definir um novo tipo de dados (que serve também para definir uma nova
+dimensão). Esta definição pode ser independente (isto é definir de raiz uma nova dimensão), ou dependente. Neste último caso a definição usa uma expressão aritmética
+envolvendo apenas multiplicações, divisões e/ou potências envolvendo dimensões já definidas (ver exemplos). Em qualquer um destes casos, uma dimensão funciona como um
+novo tipo de dados numérico (assente em inteiros ou em reais). A definição duma dimensão envolve também a definição da sua unidade base (por exemplo, a unidade metro
+para a dimensão distância), e, eventualmente, um sufixo (por exemplo, o sufixo m para
+a unidade metro).
+• Instrução estática (isto é, apenas com significado em tempo de compilação) para incluir
+o conteúdo de outro ficheiro (semanticamente similar ao include da linguagem C)
+
+Caracterı́sticas desejáveis
+Os exemplos des-*.sl indicam algum código fonte que tem de ser aceite (e devidamente
+compilado) pela linguagem a desenvolver.
+• Verificação semântica (estática) do sistema de tipos com análise dimensional.
+• Instrução para definir outra unidade para um dimensão existente (por exemplo, polegadas para a dimensão distância).
+• Implementação de uma versão interpretada desta mesma linguagem. A análise semântica
+desta linguagem secundária deve ser, obviamente, dinâmico e detectar os mesmos erros
+semânticos.
+• Permitir que se restrinja a representação dos tipos numéricos a um determinado número
+de bits.
+• Implementar a instrução para lidar com falhas (try), conforme exemplificado.
+• Permitir a definição de expressões booleanas (predicados) contendo, pelo menos relações
+de ordem e operadores booleanos (conjunção, disjunção, etc.).
+• Incluir a instrução condicional (operando sobre expressões booleanas).
+• Instrução de iteração (for) entre dois valores inteiros.
+• Incluir outras instruções repetitivas.
+• Permitir a definição de valores dimensionais literais com sufixo (por exemplo: l := 5m: Length;).
+• Permitir a soma/subtracção de valores com a mesma dimensão, mas com unidades diferentes (por exemplo: l := 5m - 5cm: Length;).
+3
+
+• Incluir o suporte para listas (ilimitadas, mas parametrizadas para um determinado tipo).
+• Instrução para adicionar elemento no fim de uma lista.
+• Operadores para aceder a elementos de uma lista (similar ao uso de arrays nativos em
+Java com a diferença do primeiro elemento ter o ı́ndice 1).
+
+Caracterı́sticas avançadas
+• Instrução prefixa (ver ficheiro prefix.sl) e aplicação de prefixos nos valores literais
+(por exemplo: l := 5cm: Length;).
+• Implementar funções e variáveis locais às mesmas.
+• Implementar estruturas.
+• ...
+
+4
+
+
